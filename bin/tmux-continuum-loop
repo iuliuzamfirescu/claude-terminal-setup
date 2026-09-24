@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Runs continuum's own save check periodically in the background, decoupled
+# from status-line redraws. The save script itself takes ~300ms per call
+# (script/subprocess overhead, not disk I/O) even when it decides a save
+# isn't due yet, so calling it from status-format made every click pay that
+# cost. continuum decides internally whether enough time has passed to
+# actually save; this just gives it a chance to check once a minute.
+set -euo pipefail
+
+while sleep 60; do
+  ~/.tmux/plugins/tmux-continuum/scripts/continuum_save.sh > /dev/null 2>&1 || true
+done

@@ -12,6 +12,7 @@ A tmux + Ghostty setup for running several Claude Code sessions side by side, on
 - `bin/tmux-pane-bar`, custom-rendered pane tab bar, same
 - `bin/tmux-pane-bar-move`, `bin/tmux-window-bar-move`, reorder helpers the bars call on drop
 - `bin/tmux-bar-drag-update`, `bin/tmux-bar-drag-watchdog`, `bin/tmux-bar-drag-commit`, the drag machinery both bars share
+- `bin/tmux-continuum-loop`, runs the tmux-continuum plugin's save check on its own timer instead of on every status redraw
 
 ## Install
 
@@ -108,4 +109,5 @@ One known limitation: if a drag leaves the exact row of the bar it started on an
 
 - Claude Code sets its own pane title through a terminal escape sequence and will overwrite anything tmux's built-in pane title mechanism sets. Pane names here are stored as a separate tmux user option instead, so renames stick.
 - The active pane gets a slightly lighter background (`window-active-style`/`window-style`) using catppuccin's own `@thm_surface_0`/`@thm_bg`. This is tmux's own plugin theme, fixed regardless of which Ghostty terminal theme is currently cycled to, so it can look mismatched against a very different (for example, light) Ghostty theme.
-- `tmux-resurrect` and `tmux-continuum` are included as plugins so sessions survive closing the terminal and reboots. Install the plugins from inside tmux with `Ctrl-a I`.
+- `tmux-resurrect` and `tmux-continuum` are included as plugins so sessions survive closing the terminal and reboots. Install the plugins from inside tmux with `Ctrl-a I`. Continuum's own save script takes around 300ms just to check whether a save is due, so `bin/tmux-continuum-loop` runs it on its own 60 second background timer instead of tying it to every status redraw, which would otherwise add that delay to every click.
+- Clicking an actual pane (not a bar entry) also forces an immediate status refresh, since without it the bar's active-pane highlight would only catch up on the next natural `status-interval` tick, up to 5 seconds later.
