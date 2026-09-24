@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# Custom-ordered pane bar: tmux's own pane iteration order is fixed at creation
+# time and swap-pane deliberately does not change it, so we track our own
+# per-window display order in @paneOrder instead. Also tracks each pill's
+# on-screen column span in @paneBarSpans, used by tmux-pane-bar-hittest to
+# turn a mouse x-position into an insertion point during a drag.
+set -euo pipefail
+
+win="$1"
+insert_before="${2:-}"
+
+stored_order="$(tmux show -w -t "$win" -v @paneOrder 2>/dev/null || true)"
+
+mapfile -t live_lines < <(tmux list-panes -t "$win" -F "#{pane_id}|#{pane_active}|#{@paneName}|#{pane_title}")
+
+declare -A active_of name_of
+live_ids=()
+for line in "${live_lines[@]}"; do
+  id="${line%%|*}"; rest="${line#*|}"
+  active="${rest%%|*}"; rest="${rest#*|}"
+  paneName="${rest%%|*}"; title="${rest#*|}"
+  live_ids+=("$id")
+  active_of["$id"]="$active"
+  name_of["$id"]="${paneName:-$title}"
+done
+
+declare -A seen
+ordered_ids=()
+for id in $stored_order; do
+  if [[ -n "${active_of[$id]:-}" ]]; then
+    ordered_ids+=("$id")
+    seen["$id"]=1
+  fi
+done
+for id in "${live_ids[@]}"; do
+  if [[ -z "${seen[$id]:-}" ]]; then
+    ordered_ids+=("$id")
+  fi
+done
+
+if [[ "${ordered_ids[*]}" != "$stored_order" ]]; then
+  tmux set -w -t "$win" @paneOrder "${ordered_ids[*]}"
+fi
+
+marker='#[fg=yellow]▏#[default]'
+
+out=""
+spans=""
+col=0
+for id in "${ordered_ids[@]}"; do
+  if [[ "$id" == "$insert_before" ]]; then
+    out+="$marker"
+  fi
+  name="${name_of[$id]}"
+  width=$(( ${#name} + 3 ))
+  spans+="${id}:${col}:$(( col + width )) "
+  col=$(( col + width ))
+  if [[ "${active_of[$id]}" == "1" ]]; then
+    style='#[fg=#11111b bg=#{@thm_mauve}]'
+  else
+    style='#[fg=#cdd6f4 bg=#{@thm_surface_0}]'
+  fi
+  out+="#[range=pane|${id}]${style} ${name} #[default] #[norange]"
+done
+if [[ "$insert_before" == "END" ]]; then
+  out+="$marker"
+fi
+
+echo "$spans" > "/tmp/tmux-pane-bar-spans-${win}"
+
+echo -e "$out"

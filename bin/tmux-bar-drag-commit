@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Commit whatever drag is in progress (pane or window), wherever the mouse
+# was actually released -- on the bar, over pane content, or a border.
+# Shared by every release-catching binding so there's one place this logic
+# lives, regardless of which surface the release lands on.
+set -euo pipefail
+
+window_id="$1"
+session_name="$2"
+client="$3"
+
+src_pane="$(tmux show -g -v @dragSourcePane 2>/dev/null || true)"
+if [[ -n "$src_pane" ]]; then
+  tgt="$(tmux show -g -v @dragInsertBefore 2>/dev/null || true)"
+  if [[ -n "$tgt" && "$tgt" != "$src_pane" ]]; then
+    ~/.local/bin/tmux-pane-bar-move "$window_id" "$src_pane" "$tgt" || true
+  fi
+  rm -f "/tmp/tmux-pane-bar-insert-${window_id}" "/tmp/tmux-pane-bar-insert-${window_id}.pid"
+  tmux set -gu @dragSourcePane \; set -gu @dragInsertBefore \; refresh-client -S -t "$client"
+  exit 0
+fi
+
+src_win="$(tmux show -g -v @dragSourceWin 2>/dev/null || true)"
+if [[ -n "$src_win" ]]; then
+  tgt="$(tmux show -g -v @dragInsertBeforeWin 2>/dev/null || true)"
+  if [[ -n "$tgt" && "$tgt" != "$src_win" ]]; then
+    ~/.local/bin/tmux-window-bar-move "$session_name" "$src_win" "$tgt" || true
+  fi
+  rm -f "/tmp/tmux-window-bar-insert-${session_name}" "/tmp/tmux-window-bar-insert-${session_name}.pid"
+  tmux set -gu @dragSourceWin \; set -gu @dragInsertBeforeWin \; refresh-client -S -t "$client"
+fi

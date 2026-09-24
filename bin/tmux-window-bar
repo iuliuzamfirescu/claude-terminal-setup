@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Custom window bar: same pattern as tmux-pane-bar, but windows already have
+# a native mutable order (window_index, reorderable via move-window) so no
+# self-healing order tracking is needed here, just span tracking for the
+# insertion marker.
+set -euo pipefail
+
+sess="$1"
+insert_before="${2:-}"
+
+mapfile -t lines < <(tmux list-windows -t "$sess" -F "#{window_id}|#{window_index}|#{window_active}|#{window_name}")
+
+marker='#[fg=yellow]▏#[default]'
+
+out=""
+spans=""
+col=0
+for line in "${lines[@]}"; do
+  id="${line%%|*}"; rest="${line#*|}"
+  index="${rest%%|*}"; rest="${rest#*|}"
+  active="${rest%%|*}"; name="${rest#*|}"
+  if [[ "$id" == "$insert_before" ]]; then
+    out+="$marker"
+  fi
+  width=$(( ${#name} + 3 ))
+  spans+="${id}:${col}:$(( col + width )) "
+  col=$(( col + width ))
+  if [[ "$active" == "1" ]]; then
+    style='#[fg=#11111b bg=#{@thm_mauve}]'
+  else
+    style='#[fg=#cdd6f4 bg=#{@thm_surface_0}]'
+  fi
+  out+="#[range=window|${index}]${style} ${name} #[default] #[norange]"
+done
+if [[ "$insert_before" == "END" ]]; then
+  out+="$marker"
+fi
+
+echo "$spans" > "/tmp/tmux-window-bar-spans-${sess}"
+echo -e "$out"

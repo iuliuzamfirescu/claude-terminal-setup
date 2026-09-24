@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Move a window to just before another window (tgt=END appends at the end).
+set -euo pipefail
+
+sess="$1"
+src="$2"
+tgt="$3"
+
+if [[ "$tgt" == "END" ]]; then
+  last="$(tmux list-windows -t "$sess" -F "#{window_index}" | sort -n | tail -1)"
+  tmux move-window -s "$src" -t "${sess}:$(( last + 1 ))"
+else
+  tmux move-window -b -s "$src" -t "$tgt"
+fi
+tmux move-window -r -t "$sess"

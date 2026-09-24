@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# Shared hot path for both the pane bar and window bar: turn a mouse x into
+# an insertion point using cached spans, only touching tmux when it changed.
+set -euo pipefail
+
+spans_file="$1"
+state_file="$2"
+x="$3"
+option="$4"
+client="$5"
+move_script="$6"
+move_context="$7"
+source_id="$8"
+source_option="$9"
+
+pid_file="${state_file}.pid"
+if [[ ! -f "$pid_file" ]] || ! kill -0 "$(cat "$pid_file" 2>/dev/null)" 2>/dev/null; then
+  setsid ~/.local/bin/tmux-bar-drag-watchdog "$state_file" "$option" "$client" "$move_script" "$move_context" "$source_id" "$source_option" > /dev/null 2>&1 < /dev/null &
+  echo $! > "$pid_file"
+fi
+
+[[ -f "$spans_file" ]] || exit 0
+read -ra ranges < "$spans_file"
+
+result="END"
+for i in "${!ranges[@]}"; do
+  entry="${ranges[$i]}"
+  rest="${entry#*:}"
+  start="${rest%%:*}"
+  end="${rest#*:}"
+  if (( x < start )); then
+    result="${entry%%:*}"
+    break
+  fi
+  if (( x < end )); then
+    mid=$(( (start + end) / 2 ))
+    if (( x < mid )); then
+      result="${entry%%:*}"
+    elif (( i + 1 < ${#ranges[@]} )); then
+      result="${ranges[$((i+1))]%%:*}"
+    else
+      result="END"
+    fi
+    break
+  fi
+done
+
+old="$(cat "$state_file" 2>/dev/null || true)"
+if [[ "$result" != "$old" ]]; then
+  echo "$result" > "$state_file"
+  tmux set -g "$option" "$result" \; refresh-client -S -t "$client"
+fi

@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Started once when a drag begins. Catching "mouse released" reliably via
+# tmux's own mouse events is not possible in general: an app running in a
+# pane (Claude Code included) can have its own mouse mode and swallow the
+# release before tmux's bindings ever see it, and a release outside the
+# window generates no tmux event at all. So this polls the physical
+# pointer's actual button state directly instead, which bypasses tmux and
+# app-level mouse negotiation entirely, and commits the instant it goes
+# from held to released, wherever that happens.
+set -euo pipefail
+
+state_file="$1"
+option="$2"
+client="$3"
+move_script="$4"
+move_context="$5"
+source_id="$6"
+source_option="$7"
+
+mapfile -t dev_ids < <(xinput list 2>/dev/null | grep 'slave  pointer' | grep -oP 'id=\K[0-9]+')
+
+button_down() {
+  for dev in "${dev_ids[@]}"; do
+    xinput query-state "$dev" 2>/dev/null | grep -q 'button\[1\]=down' && return 0
+  done
+  return 1
+}
+
+while sleep 0.03; do
+  [[ -f "$state_file" ]] || exit 0
+  if ! button_down; then
+    target="$(cat "$state_file" 2>/dev/null || true)"
+    if [[ -n "$target" && "$target" != "$source_id" ]]; then
+      "$move_script" "$move_context" "$source_id" "$target" || true
+    fi
+    rm -f "$state_file" "${state_file}.pid"
+    tmux set -gu "$option" \; set -gu "$source_option" \; refresh-client -S -t "$client"
+    break
+  fi
+done

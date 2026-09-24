@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Move a pane id to just before another pane id in a window's @paneOrder (tgt=END appends at the end).
+set -euo pipefail
+
+win="$1"
+src="$2"
+tgt="$3"
+
+order="$(tmux show -w -t "$win" -v @paneOrder 2>/dev/null || true)"
+read -ra ids <<< "$order"
+
+remaining=()
+for id in "${ids[@]}"; do
+  [[ "$id" != "$src" ]] && remaining+=("$id")
+done
+
+if [[ "$tgt" == "END" ]]; then
+  final=("${remaining[@]}" "$src")
+  tmux set -w -t "$win" @paneOrder "${final[*]}"
+else
+  tgt_i=-1
+  for i in "${!remaining[@]}"; do
+    [[ "${remaining[$i]}" == "$tgt" ]] && tgt_i=$i
+  done
+  if [[ $tgt_i -ge 0 ]]; then
+    final=("${remaining[@]:0:tgt_i}" "$src" "${remaining[@]:tgt_i}")
+    tmux set -w -t "$win" @paneOrder "${final[*]}"
+  fi
+fi
