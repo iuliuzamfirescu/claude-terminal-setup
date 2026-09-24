@@ -22,15 +22,24 @@ for line in "${lines[@]}"; do
   if [[ "$id" == "$insert_before" ]]; then
     out+="$marker"
   fi
+  window_has_idle_claude=0
+  while read -r pid; do
+    [[ -e "/tmp/tmux-claude-idle/${pid}" ]] && window_has_idle_claude=1 && break
+  done < <(tmux list-panes -t "$id" -F "#{pane_id}" 2>/dev/null)
+
   width=$(( ${#name} + 3 ))
   spans+="${id}:${col}:$(( col + width )) "
   col=$(( col + width ))
+
   if [[ "$active" == "1" ]]; then
-    style='#[fg=#11111b bg=#{@thm_mauve}]'
+    fg='#cdd6f4'; bg='#{@thm_surface_1}'
+    (( window_has_idle_claude )) && fg='#11111b' && bg='#ddc5fa'
+  elif (( window_has_idle_claude )); then
+    fg='#11111b'; bg='#{@thm_mauve}'
   else
-    style='#[fg=#cdd6f4 bg=#{@thm_surface_0}]'
+    fg='#cdd6f4'; bg='#{@thm_surface_0}'
   fi
-  out+="#[range=window|${index}]${style} ${name} #[default] #[norange]"
+  out+="#[range=window|${index}]#[fg=${fg} bg=${bg}] ${name} #[default] #[norange]"
 done
 if [[ "$insert_before" == "END" ]]; then
   out+="$marker"

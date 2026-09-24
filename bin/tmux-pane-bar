@@ -52,15 +52,20 @@ for id in "${ordered_ids[@]}"; do
     out+="$marker"
   fi
   name="${name_of[$id]}"
+  idle=0
+  [[ -e "/tmp/tmux-claude-idle/${id}" ]] && idle=1
   width=$(( ${#name} + 3 ))
   spans+="${id}:${col}:$(( col + width )) "
   col=$(( col + width ))
   if [[ "${active_of[$id]}" == "1" ]]; then
-    style='#[fg=#11111b bg=#{@thm_mauve}]'
+    fg='#cdd6f4'; bg='#{@thm_surface_1}'
+    (( idle )) && fg='#11111b' && bg='#ddc5fa'
+  elif (( idle )); then
+    fg='#11111b'; bg='#{@thm_mauve}'
   else
-    style='#[fg=#cdd6f4 bg=#{@thm_surface_0}]'
+    fg='#cdd6f4'; bg='#{@thm_surface_0}'
   fi
-  out+="#[range=pane|${id}]${style} ${name} #[default] #[norange]"
+  out+="#[range=pane|${id}]#[fg=${fg} bg=${bg}] ${name} #[default] #[norange]"
 done
 if [[ "$insert_before" == "END" ]]; then
   out+="$marker"

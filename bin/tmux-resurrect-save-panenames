@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# tmux-resurrect post-save hook: @paneName is a custom option resurrect's own
+# save format has no slot for, so it is dumped separately here, keyed by
+# session:window_index.pane_index since pane_id is not stable across a restore.
+set -euo pipefail
+
+out="$HOME/.local/share/tmux/resurrect/panenames.txt"
+mkdir -p "$(dirname "$out")"
+
+tmux list-panes -a -F "#{session_name}:#{window_index}.#{pane_index} #{@paneName}" 2>/dev/null \
+  | awk 'NF>1' > "$out"

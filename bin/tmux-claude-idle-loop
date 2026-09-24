@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Polls every claude pane every 2s. Claude Code shows "esc to interrupt" in
+# its status line while actively working; its absence means the pane is
+# idle and waiting for input. Writes one marker file per idle pane and only
+# forces a redraw when the overall idle set actually changed.
+set -euo pipefail
+
+marker_dir="/tmp/tmux-claude-idle"
+mkdir -p "$marker_dir"
+prev_state=""
+
+while sleep 2; do
+  mapfile -t claude_panes < <(tmux list-panes -a -F "#{pane_id} #{pane_current_command}" 2>/dev/null | awk '$2=="claude"{print $1}')
+
+  idle_now=()
+  for id in "${claude_panes[@]}"; do
+    if ! tmux capture-pane -t "$id" -p 2>/dev/null | tail -3 | grep -q "esc to interrupt"; then
+      idle_now+=("$id")
+      touch "$marker_dir/$id"
+      tmux set -p -t "$id" @paneIdle 1 2>/dev/null || true
+    else
+      rm -f "$marker_dir/$id"
+      tmux set -p -t "$id" -u @paneIdle 2>/dev/null || true
+    fi
+  done
+
+  for f in "$marker_dir"/%*; do
+    [[ -e "$f" ]] || continue
+    id="$(basename "$f")"
+    printf '%s\n' "${claude_panes[@]}" | grep -qx "$id" || rm -f "$f"
+  done
+
+  new_state="${idle_now[*]}"
+  if [[ "$new_state" != "$prev_state" ]]; then
+    while read -r client_tty; do
+      [[ -n "$client_tty" ]] && tmux refresh-client -S -t "$client_tty" 2>/dev/null || true
+    done < <(tmux list-clients -F "#{client_tty}" 2>/dev/null)
+    prev_state="$new_state"
+  fi
+done

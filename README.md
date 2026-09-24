@@ -13,6 +13,8 @@ A tmux + Ghostty setup for running several Claude Code sessions side by side, on
 - `bin/tmux-pane-bar-move`, `bin/tmux-window-bar-move`, reorder helpers the bars call on drop
 - `bin/tmux-bar-drag-update`, `bin/tmux-bar-drag-watchdog`, `bin/tmux-bar-drag-commit`, the drag machinery both bars share
 - `bin/tmux-continuum-loop`, runs the tmux-continuum plugin's save check on its own timer instead of on every status redraw
+- `bin/tmux-claude-idle-loop`, polls every claude pane and highlights the ones waiting for input, in both bars and as a pane background/border tint
+- `bin/tmux-resurrect-save-panenames`, `bin/tmux-resurrect-restore-panenames`, resurrect hooks so pane renames survive a session restore, which resurrect's own save format has no slot for
 
 ## Install
 
@@ -105,9 +107,23 @@ So release detection does not use tmux events at all. `tmux-bar-drag-watchdog` s
 
 One known limitation: if a drag leaves the exact row of the bar it started on and later returns to it, tmux stops delivering drag-motion events for that gesture and never resumes, even once the cursor is back over the bar. The marker freezes at its last position rather than continuing to track the cursor. The drop still lands correctly on release, using wherever it was frozen, so this is a display quirk rather than a functional one. Fixing it fully would mean polling cursor position the same way release detection already does, translating screen pixels into terminal columns, which is a bigger change than the rest of this file represents.
 
+## Highlighting idle Claude sessions
+
+`tmux-claude-idle-loop` polls every pane running `claude` every 2 seconds. Claude Code shows `esc to interrupt` in its status line while actively working; its absence means the pane is idle and waiting for input, which is a reliable text pattern to poll for even without a real state API. The result drives four background colors on both bars, matching the same states as pane borders and backgrounds:
+
+- not idle, not active: unchanged, the normal dark surface color
+- not idle, active: a step lighter gray than the above
+- idle, not active: purple (`@thm_mauve`)
+- idle, active: a lighter purple than the above (no catppuccin token matches this exactly, so it is computed by lightening mauve)
+
+A pane's actual border and content background pick up the same idle state through a `@paneIdle` tmux option the loop sets per pane, since `pane-border-style`/`window-active-style` can reference tmux options directly in a format conditional but cannot see the marker files the bars use.
+
+Note this is inherently an approximation: since it depends on scraping visible text rather than a real busy/idle signal from Claude Code itself, brief false positives are possible between tool calls or render chunks mid-turn. It should never miss a pane that is genuinely idle, though.
+
 ## Notes
 
 - Claude Code sets its own pane title through a terminal escape sequence and will overwrite anything tmux's built-in pane title mechanism sets. Pane names here are stored as a separate tmux user option instead, so renames stick.
-- The active pane gets a slightly lighter background (`window-active-style`/`window-style`) using catppuccin's own `@thm_surface_0`/`@thm_bg`. This is tmux's own plugin theme, fixed regardless of which Ghostty terminal theme is currently cycled to, so it can look mismatched against a very different (for example, light) Ghostty theme.
+- `@resurrect-processes 'claude'` tells tmux-resurrect to relaunch `claude` (not just a plain shell) in panes that had it running, and the two `tmux-resurrect-*-panenames` scripts carry pane renames through a restore too, since resurrect's own save format only knows about tmux's built-in pane_title, not custom options.
+- `message-style`/`message-command-style` are overridden with an explicit `fill=` color (catppuccin's own default leaves `fill=default`, which only highlights the message text itself, not the full bar width behind it) so rename and kill confirmation prompts cover the whole row instead of overlapping the pills underneath.
 - `tmux-resurrect` and `tmux-continuum` are included as plugins so sessions survive closing the terminal and reboots. Install the plugins from inside tmux with `Ctrl-a I`. Continuum's own save script takes around 300ms just to check whether a save is due, so `bin/tmux-continuum-loop` runs it on its own 60 second background timer instead of tying it to every status redraw, which would otherwise add that delay to every click.
 - Clicking an actual pane (not a bar entry) also forces an immediate status refresh, since without it the bar's active-pane highlight would only catch up on the next natural `status-interval` tick, up to 5 seconds later.

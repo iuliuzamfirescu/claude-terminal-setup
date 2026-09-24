@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# tmux-resurrect post-restore hook: reapplies @paneName saved by
+# tmux-resurrect-save-panenames, matched by position since resurrect
+# recreates panes with new pane_ids.
+set -euo pipefail
+
+file="$HOME/.local/share/tmux/resurrect/panenames.txt"
+[[ -f "$file" ]] || exit 0
+
+while read -r target name; do
+  [[ -n "$target" && -n "$name" ]] || continue
+  tmux set -p -t "$target" @paneName "$name" 2>/dev/null || true
+done < "$file"
