@@ -61,7 +61,7 @@ for id in "${ordered_ids[@]}"; do
     fg='#cdd6f4'; bg='#{@thm_surface_2}'
     (( idle )) && fg='#11111b' && bg='#e2cdfa'
   elif (( idle )); then
-    fg='#11111b'; bg='#{@thm_mauve}'
+    fg='#cdd6f4'; bg='#8b2efa'
   else
     fg='#cdd6f4'; bg='#{@thm_mantle}'
   fi
