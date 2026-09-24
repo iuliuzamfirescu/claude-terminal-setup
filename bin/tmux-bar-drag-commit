@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Commit whatever drag is in progress (pane or window), wherever the mouse
-# was actually released -- on the bar, over pane content, or a border.
+# was actually released, on the bar, over pane content, or a border.
 # Shared by every release-catching binding so there's one place this logic
 # lives, regardless of which surface the release lands on.
 set -euo pipefail
