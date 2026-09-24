@@ -65,7 +65,7 @@ Prefix is `Ctrl-a`.
 | `Ctrl-a N` | name the current pane |
 | `Ctrl-a r` | reload the config |
 | `Alt+t` | cycle to the next Ghostty theme and apply it |
-| `Alt+Shift+t` | cycle to the previous theme and apply it |
+| `Alt+r` | cycle to the previous theme and apply it |
 
 ## Mouse
 
@@ -107,4 +107,5 @@ One known limitation: if a drag leaves the exact row of the bar it started on an
 ## Notes
 
 - Claude Code sets its own pane title through a terminal escape sequence and will overwrite anything tmux's built-in pane title mechanism sets. Pane names here are stored as a separate tmux user option instead, so renames stick.
+- The active pane gets a slightly lighter background (`window-active-style`/`window-style`) using catppuccin's own `@thm_surface_0`/`@thm_bg`. This is tmux's own plugin theme, fixed regardless of which Ghostty terminal theme is currently cycled to, so it can look mismatched against a very different (for example, light) Ghostty theme.
 - `tmux-resurrect` and `tmux-continuum` are included as plugins so sessions survive closing the terminal and reboots. Install the plugins from inside tmux with `Ctrl-a I`.
