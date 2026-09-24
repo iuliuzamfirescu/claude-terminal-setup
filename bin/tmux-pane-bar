@@ -58,12 +58,12 @@ for id in "${ordered_ids[@]}"; do
   spans+="${id}:${col}:$(( col + width )) "
   col=$(( col + width ))
   if [[ "${active_of[$id]}" == "1" ]]; then
-    fg='#cdd6f4'; bg='#{@thm_surface_1}'
-    (( idle )) && fg='#11111b' && bg='#ddc5fa'
+    fg='#cdd6f4'; bg='#{@thm_surface_2}'
+    (( idle )) && fg='#11111b' && bg='#e2cdfa'
   elif (( idle )); then
-    fg='#11111b'; bg='#{@thm_mauve}'
+    fg='#cdd6f4'; bg='#7a6698'
   else
-    fg='#cdd6f4'; bg='#{@thm_surface_0}'
+    fg='#cdd6f4'; bg='#{@thm_mantle}'
   fi
   out+="#[range=pane|${id}]#[fg=${fg} bg=${bg}] ${name} #[default] #[norange]"
 done
