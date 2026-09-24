@@ -35,7 +35,7 @@ for line in "${lines[@]}"; do
     fg='#cdd6f4'; bg='#{@thm_surface_2}'
     (( window_has_idle_claude )) && fg='#11111b' && bg='#e2cdfa'
   elif (( window_has_idle_claude )); then
-    fg='#cdd6f4'; bg='#7a6698'
+    fg='#11111b'; bg='#{@thm_mauve}'
   else
     fg='#cdd6f4'; bg='#{@thm_mantle}'
   fi
