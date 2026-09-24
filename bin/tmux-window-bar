@@ -33,7 +33,7 @@ for line in "${lines[@]}"; do
 
   if [[ "$active" == "1" ]]; then
     fg='#cdd6f4'; bg='#{@thm_surface_2}'
-    (( window_has_idle_claude )) && fg='#11111b' && bg='#e2cdfa'
+    (( window_has_idle_claude )) && fg='#11111b' && bg='#b270ff'
   elif (( window_has_idle_claude )); then
     fg='#cdd6f4'; bg='#8b2efa'
   else

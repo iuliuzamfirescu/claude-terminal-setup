@@ -59,7 +59,7 @@ for id in "${ordered_ids[@]}"; do
   col=$(( col + width ))
   if [[ "${active_of[$id]}" == "1" ]]; then
     fg='#cdd6f4'; bg='#{@thm_surface_2}'
-    (( idle )) && fg='#11111b' && bg='#e2cdfa'
+    (( idle )) && fg='#11111b' && bg='#b270ff'
   elif (( idle )); then
     fg='#cdd6f4'; bg='#8b2efa'
   else
