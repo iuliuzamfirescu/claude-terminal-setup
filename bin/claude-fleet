@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Launch one tmux window per given git worktree, each pane already running `claude`.
+#
+# Usage:
+#   claude-fleet <session-name> <worktree-path> [<worktree-path> ...]
+#
+# Example:
+#   claude-fleet slap ~/Documents/_SLAPStack/workspace/slapstack-main ../feature-x ../fix-y
+
+set -euo pipefail
+
+if [ $# -lt 2 ]; then
+  echo "usage: claude-fleet <session-name> <worktree-path> [<worktree-path> ...]" >&2
+  exit 1
+fi
+
+session="$1"
+shift
+
+attach() {
+  if [ -n "${TMUX:-}" ]; then
+    tmux switch-client -t "$session"
+  else
+    exec tmux attach -t "$session"
+  fi
+}
+
+if tmux has-session -t "$session" 2>/dev/null; then
+  echo "session '$session' already exists, switching" >&2
+  attach
+  exit 0
+fi
+
+first=1
+for wt in "$@"; do
+  wt="$(realpath "$wt")"
+  name="$(basename "$wt")"
+  if [ "$first" -eq 1 ]; then
+    tmux new-session -d -s "$session" -n "$name" -c "$wt"
+    first=0
+  else
+    tmux new-window -t "$session" -n "$name" -c "$wt"
+  fi
+  tmux send-keys -t "$session:$name" "claude" C-m
+done
+
+attach

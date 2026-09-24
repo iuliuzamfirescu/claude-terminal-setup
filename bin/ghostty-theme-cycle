@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Rotate ~/.config/ghostty/config to the next theme in THEMES.
+# Run, then press Ctrl+Shift+, in Ghostty to apply (its default reload_config keybind).
+set -euo pipefail
+
+CONFIG="$HOME/.config/ghostty/config"
+mapfile -t THEMES < <(/snap/bin/ghostty +list-themes | sed -E 's/ \((resources|config)\)$//')
+
+step=1
+[ "${1:-}" = "--reverse" ] && step=-1
+
+current="$(grep -oP '^theme = \K.*' "$CONFIG")"
+
+next_index=0
+count=${#THEMES[@]}
+for i in "${!THEMES[@]}"; do
+  if [ "${THEMES[$i]}" = "$current" ]; then
+    next_index=$(( (i + step + count) % count ))
+    break
+  fi
+done
+
+next="${THEMES[$next_index]}"
+sed -i "s/^theme = .*/theme = $next/" "$CONFIG"
+echo "$next"
