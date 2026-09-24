@@ -5,7 +5,7 @@
 #   claude-fleet <session-name> <worktree-path> [<worktree-path> ...]
 #
 # Example:
-#   claude-fleet slap ~/Documents/_SLAPStack/workspace/slapstack-main ../feature-x ../fix-y
+#   claude-fleet myproj ~/code/myproject ../feature-x ../fix-y
 
 set -euo pipefail
 
