@@ -10,6 +10,12 @@ insert_before="${2:-}"
 
 mapfile -t lines < <(tmux list-windows -t "$sess" -F "#{window_id}|#{window_index}|#{window_active}|#{window_name}")
 
+# one upfront pass instead of a per-window tmux list-panes call in the loop below
+declare -A idle_window
+while read -r win_id pane_id; do
+  [[ -e "/tmp/tmux-claude-idle/${pane_id}" ]] && idle_window["$win_id"]=1
+done < <(tmux list-panes -s -t "$sess" -F "#{window_id} #{pane_id}" 2>/dev/null)
+
 marker='#[fg=yellow]▏#[default]'
 
 out=""
@@ -22,24 +28,21 @@ for line in "${lines[@]}"; do
   if [[ "$id" == "$insert_before" ]]; then
     out+="$marker"
   fi
-  window_has_idle_claude=0
-  while read -r pid; do
-    [[ -e "/tmp/tmux-claude-idle/${pid}" ]] && window_has_idle_claude=1 && break
-  done < <(tmux list-panes -t "$id" -F "#{pane_id}" 2>/dev/null)
+  window_has_idle_claude="${idle_window[$id]:-0}"
 
   width=$(( ${#name} + 3 ))
   spans+="${id}:${col}:$(( col + width )) "
   col=$(( col + width ))
 
   if [[ "$active" == "1" ]]; then
-    fg='#cdd6f4'; bg='#{@thm_surface_2}'
-    (( window_has_idle_claude )) && fg='#ffffff' && bg='#b270ff'
+    style='#{@pill_working_active}'
+    (( window_has_idle_claude )) && style='#{@pill_idle_active}'
   elif (( window_has_idle_claude )); then
-    fg='#11111b'; bg='#8b2efa'
+    style='#{@pill_idle_inactive}'
   else
-    fg='#cdd6f4'; bg='#{@thm_mantle}'
+    style='#{@pill_working_inactive}'
   fi
-  out+="#[range=window|${index}]#[fg=${fg} bg=${bg}] ${name} #[default] #[norange]"
+  out+="#[range=window|${index}]#[${style}] ${name} #[default] #[norange]"
 done
 if [[ "$insert_before" == "END" ]]; then
   out+="$marker"

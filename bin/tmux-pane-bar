@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Custom-ordered pane bar: tmux's own pane iteration order is fixed at creation
 # time and swap-pane deliberately does not change it, so we track our own
-# per-window display order in @paneOrder instead. Also tracks each pill's
-# on-screen column span in @paneBarSpans, used by tmux-pane-bar-hittest to
-# turn a mouse x-position into an insertion point during a drag.
+# per-window display order in @paneOrder instead. Also writes each pill's
+# on-screen column span to a file, used by tmux-bar-drag-update to turn a
+# mouse x-position into an insertion point during a drag.
 set -euo pipefail
 
 win="$1"
@@ -58,14 +58,14 @@ for id in "${ordered_ids[@]}"; do
   spans+="${id}:${col}:$(( col + width )) "
   col=$(( col + width ))
   if [[ "${active_of[$id]}" == "1" ]]; then
-    fg='#cdd6f4'; bg='#{@thm_surface_2}'
-    (( idle )) && fg='#ffffff' && bg='#b270ff'
+    style='#{@pill_working_active}'
+    (( idle )) && style='#{@pill_idle_active}'
   elif (( idle )); then
-    fg='#11111b'; bg='#8b2efa'
+    style='#{@pill_idle_inactive}'
   else
-    fg='#cdd6f4'; bg='#{@thm_mantle}'
+    style='#{@pill_working_inactive}'
   fi
-  out+="#[range=pane|${id}]#[fg=${fg} bg=${bg}] ${name} #[default] #[norange]"
+  out+="#[range=pane|${id}]#[${style}] ${name} #[default] #[norange]"
 done
 if [[ "$insert_before" == "END" ]]; then
   out+="$marker"
