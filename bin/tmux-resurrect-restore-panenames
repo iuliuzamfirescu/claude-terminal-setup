@@ -11,3 +11,8 @@ while read -r target name; do
   [[ -n "$target" && -n "$name" ]] || continue
   tmux set -p -t "$target" @paneName "$name" 2>/dev/null || true
 done < "$file"
+
+# continuum's background saves run with no attached client, so the save file
+# has no active-session line and restore leaves the client on whichever
+# session it restored last; land on main explicitly
+tmux switch-client -t main 2>/dev/null || true
