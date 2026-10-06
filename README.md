@@ -60,6 +60,7 @@ Prefix is `Ctrl-a`.
 | `Alt+s` | horizontal split, plain shell, no prefix needed |
 | `Alt+Ctrl+v` | vertical split, launches claude, no prefix needed |
 | `Alt+Ctrl+s` | horizontal split, launches claude, no prefix needed |
+| `Alt+Ctrl+h` | same as `Alt+Ctrl+s` |
 | `Alt+Left/Right/Up/Down` | move between panes |
 | `Alt+H` / `Alt+L` | previous/next window |
 | `Ctrl-a c` | new window |
