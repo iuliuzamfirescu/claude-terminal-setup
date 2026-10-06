@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Claude Code hook: records this pane's busy/idle state for tmux-claude-idle-loop.
+[[ -n "${TMUX_PANE:-}" ]] || exit 0
+tmux set -p -t "$TMUX_PANE" @claudeState "$1" 2>/dev/null || true

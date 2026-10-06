@@ -24,6 +24,8 @@ mkdir -p ~/.config/ghostty
 cp ghostty.config ~/.config/ghostty/config
 cp bin/* ~/.local/bin/
 chmod +x ~/.local/bin/claude-fleet ~/.local/bin/ghostty-theme-cycle ~/.local/bin/tmux-*
+# merge the busy/idle hooks into your Claude Code settings
+jq -s ".[0] * .[1]" ~/.claude/settings.json claude-hooks.json > /tmp/claude-settings.json && mv /tmp/claude-settings.json ~/.claude/settings.json
 ```
 
 Requirements: `tmux` 3.3 or newer (for `range=pane` support in status-format, needed for the clickable pane bar), Ghostty, `xdotool` (theme cycling and window geometry), `xinput` (release detection for drag and drop, see below). `xinput` ships with most X11 desktops already; check with `which xinput`.
@@ -112,7 +114,7 @@ One known limitation: if a drag leaves the exact row of the bar it started on an
 
 ## Highlighting idle Claude sessions
 
-`tmux-claude-idle-loop` polls every pane running `claude` every 2 seconds. Claude Code shows `esc to interrupt` in its status line while actively working; its absence means the pane is idle and waiting for input, which is a reliable text pattern to poll for even without a real state API. The result drives four background colors on both bars, matching the same states as pane borders and backgrounds:
+`tmux-claude-idle-loop` checks every pane running `claude` every 2 seconds. Claude Code hooks from `claude-hooks.json` call `tmux-claude-state`, which stores `busy` or `idle` in a `@claudeState` pane option, so detection works at any pane width. Sessions without that option fall back to screen scraping for `esc to interrupt` or the `Verb… (elapsed` spinner line. The result drives four background colors on both bars, matching the same states as pane borders and backgrounds:
 
 - not idle, not active: unchanged, the normal dark surface color
 - not idle, active: a step lighter gray than the above
@@ -121,7 +123,7 @@ One known limitation: if a drag leaves the exact row of the bar it started on an
 
 A pane's actual border and content background pick up the same idle state through a `@paneIdle` tmux option the loop sets per pane, since `pane-border-style`/`window-active-style` can reference tmux options directly in a format conditional but cannot see the marker files the bars use.
 
-Note this is inherently an approximation: since it depends on scraping visible text rather than a real busy/idle signal from Claude Code itself, brief false positives are possible between tool calls or render chunks mid-turn. It should never miss a pane that is genuinely idle, though.
+One gap: no hook fires when you interrupt with Esc, so an interrupted pane turns idle only when Claude Code's `idle_prompt` notification fires, after about 60 seconds.
 
 ## Notes
 

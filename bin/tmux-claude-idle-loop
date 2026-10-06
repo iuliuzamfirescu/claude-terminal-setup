@@ -9,12 +9,24 @@ marker_dir="/tmp/tmux-claude-idle"
 mkdir -p "$marker_dir"
 prev_state=""
 
+# hook-reported state (tmux-claude-state) when present, screen scrape for sessions started before the hooks
+pane_is_working() {
+  local state screen_tail
+  state="$(tmux show -p -t "$1" -v @claudeState 2>/dev/null || true)"
+  if [[ -n "$state" ]]; then
+    [[ "$state" == busy ]]
+    return
+  fi
+  screen_tail="$(tmux capture-pane -t "$1" -p 2>/dev/null | tail -15)"
+  grep -qE 'esc to interru|^[^ ]+ [^ ]+… \(' <<< "$screen_tail"
+}
+
 while sleep 2; do
   mapfile -t claude_panes < <(tmux list-panes -a -F "#{pane_id} #{pane_current_command}" 2>/dev/null | awk '$2=="claude"{print $1}')
 
   idle_now=()
   for id in "${claude_panes[@]}"; do
-    if ! tmux capture-pane -t "$id" -p 2>/dev/null | tail -3 | grep -q "esc to interrupt"; then
+    if ! pane_is_working "$id"; then
       idle_now+=("$id")
       touch "$marker_dir/$id"
       tmux set -p -t "$id" @paneIdle 1 2>/dev/null || true
