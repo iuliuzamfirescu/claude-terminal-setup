@@ -82,6 +82,8 @@ Both bars (window tabs on top, pane tabs underneath) work the same way:
 
 Dragging a pane pill onto the window bar (or the reverse) does not cross-contaminate: whichever drag is actually in progress keeps driving its own bar, and the marker freezes rather than jumping to a nonsensical position while you're over the other bar's row.
 
+Inside a pane, clicks and ctrl+clicks go through to the app. With Claude Code's fullscreen renderer (`/tui fullscreen`), a click in the prompt moves the cursor there, and ctrl+click opens URLs and `file://` links. tmux's default ctrl+click pane swap is replaced for this.
+
 ## claude-fleet
 
 ```
